@@ -37,13 +37,7 @@ def tokenize(code):
             match = regex.match(code, position)
             if match:
                 value = match.group()
-                
-                # Handle the different token types
-                if token_name == 'Constant':
-                    tokens.append(('Constant', int(value)))  # Convert to integer
-                else:
-                    tokens.append((token_name, value))
-                
+                tokens.append((token_name, value))
                 position = match.end()  # Move the position after the match
                 matched = True
                 break
