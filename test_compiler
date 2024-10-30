@@ -2,7 +2,8 @@
 from tokenizer import tokenize
 from parser import Parser
 from assembly_generation import AssemblyGenerator, Mov,Ret
-# Example code to tokenize and parse
+
+
 if __name__ == "__main__":
     code = """
     int main(void) {
@@ -13,26 +14,25 @@ if __name__ == "__main__":
     try:
         # Tokenize the code
         tokens = tokenize(code)
-        print("Tokens:")
-        for token in tokens:
-            print(token)
+        print(tokens)
 
+        # Parse the tokens
         parser = Parser(tokens)
         program = parser.parse()
 
-        print("\nParsed program:")
-        print(f"Function Name: {program.function.name.value}")
-        print(f"Return Value: {program.function.body.expression.value}")
-
+        # Generate assembly
         generator = AssemblyGenerator()
         generator.generate(program)
-        assembly = generator.get_assembly()
-        print("\nGenerated Assembly:")
-        for instr in assembly:
-            if isinstance(instr, Mov):
-                print(f"mov {instr.src.value}, {instr.dst.name}")
-            elif isinstance(instr, Ret):
-                print("ret")
+        assembly_output = generator.get_assembly()
+        
+        # Print generated assembly code to console
+        print("\nGenerated Assembly Code:")
+        print(assembly_output)
+
+        # Write the assembly output to a file
+        with open('output.s', 'w') as f:
+            f.write(assembly_output)
+        print("\nAssembly code has been written to output.s")
 
     except RuntimeError as e:
         print(f"Error: {e}")

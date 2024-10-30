@@ -26,25 +26,26 @@ class Register:
 
 class AssemblyGenerator:
     def __init__(self):
-        self.assembly_program = []
+        self.assembly_output = []
 
     def generate(self, ast):
         """Main entry point for generating assembly from the AST."""
         if isinstance(ast, Program):
-            self.assembly_program = self.visit_program(ast)
+            self.visit_program(ast)
         else:
             raise ValueError("Unknown AST node type")
-
+    
     def visit_program(self, program):
         """Visit a program node."""
-        function_definition = self.visit_function(program.function)
-        return function_definition
+        self.visit_function(program.function)
+        self.assembly_output.append(".section .note.CNU-stack,\"\",@progbits")
 
     def visit_function(self, function):
         """Visit a function definition node."""
-        name = function.name  # Assuming name is an Identifier instance
+        self.assembly_output.append(f"globl {function.name.value}")
+        self.assembly_output.append(f"{function.name.value}:")
         instructions = self.visit_instructions(function.body)
-        return {'name': name.value, 'instructions': instructions}
+        self.assembly_output.extend(instructions)
 
     def visit_instructions(self, instructions):
         """Visit a list of instructions."""
@@ -57,17 +58,17 @@ class AssemblyGenerator:
         """Visit a return statement."""
         instructions = []
         # Generate MOV instruction to move return value into EAX
-        instructions.append(Mov(self.visit_expression(return_node.expression), Register("EAX")))
-        instructions.append(Ret())
+        instructions.append(f"\tmov {self.visit_expression(return_node.expression)}, EAX")
+        instructions.append("\tret")
         return instructions
 
     def visit_expression(self, expr):
         """Visit an expression node."""
         if isinstance(expr, Constant):
-            return Imm(expr.value)  # Create an immediate operand
+            return f"${expr.value}"  # Create an immediate operand
         else:
             raise ValueError("Unknown expression type")
 
     def get_assembly(self):
         """Return the generated assembly program."""
-        return self.assembly_program
+        return "\n".join(self.assembly_output)
