@@ -6,8 +6,8 @@ TOKEN_SPECIFICATIONS = [
     ("Int Keyword", r"int\b"),           # Keyword: int
     ("Void Keyword", r"void\b"),         # Keyword: void
     ("Return Keyword", r"return\b"),     # Keyword: return
-    ("Identifier", r"[a-zA-Z_]\w*\b"),  # Valid identifiers
-    ("Constant", r"[0-9]+\b"),           # Integer constant
+    ("Identifier", r"[a-zA-Z_]\w*"),     # Valid identifiers
+    ("Constant", r"[0-9]+"),             # Integer constant
     ("Open parenthesis", r"\("),         # Open parenthesis
     ("Close parenthesis", r"\)"),        # Close parenthesis
     ("Open brace", r"\{"),               # Open brace
@@ -112,25 +112,9 @@ class Parser:
         
         return Function(function_name, return_statement)
     
-    # def parse_statement(self):
-        # if self.current_token()[0] == "Return Keyword":
-        #     self.expect("Return Keyword")
-        #     expression = self.parse_expression()
-        #     self.expect("Semicolon")  # Explicitly check for semicolon
-        #     return Return(expression)
-
-    # def parse_expression(self):
-    #     token = self.current_token()
-    #     if token[0] == "Constant":
-    #         self.take_token()
-    #         return Constant(int(token[1]))
-    #     else:
-    #         raise RuntimeError("Unexpected expression")
-    
     def parse_statement(self):
         self.expect("Return Keyword")  # Expect the "return" keyword
-        return_val= self.parse_expression()  # Parse the expression (should be Constant)
-        # print(return_val.value[1])
+        return_val = self.parse_expression()  # Parse the expression (should be Constant)
         self.expect("Semicolon")  # Expect the semicolon after the return value
         return Return(return_val)
         
@@ -141,9 +125,82 @@ class Parser:
         
         if token[0] == "Constant":  # Check for constant token
             self.take_token()
-            return Constant(token)  
+            return Constant(int(token[1]))  # Convert string to integer
         
         raise RuntimeError(f'Unexpected token in expression: {token}')
+
+# Instruction classes for assembly generation
+class Instruction(Node):
+    """Base class for all instructions."""
+    pass
+
+class Mov(Instruction):
+    """Represents a 'mov' instruction in assembly."""
+    def __init__(self, src, dst):
+        self.src = src  # Source operand
+        self.dst = dst  # Destination operand
+
+class Ret(Instruction):
+    """Represents a 'ret' instruction in assembly."""
+    pass  # No operands needed for return instruction
+
+class Imm:
+    """Represents an immediate (constant) operand."""
+    def __init__(self, value):
+        self.value = value  # Integer constant
+
+class Register:
+    """Represents a register operand."""
+    def __init__(self, name):
+        self.name = name  # Name of the register (e.g., "EAX")
+
+class AssemblyGenerator:
+    def __init__(self):
+        self.assembly_program = []
+
+    def generate(self, ast):
+        """Main entry point for generating assembly from the AST."""
+        if isinstance(ast, Program):
+            self.assembly_program = self.visit_program(ast)
+        else:
+            raise ValueError("Unknown AST node type")
+
+    def visit_program(self, program):
+        """Visit a program node."""
+        function_definition = self.visit_function(program.function)
+        return function_definition
+
+    def visit_function(self, function):
+        """Visit a function definition node."""
+        name = function.name  # Assuming name is an Identifier instance
+        instructions = self.visit_instructions(function.body)
+        return {'name': name.value, 'instructions': instructions}
+
+    def visit_instructions(self, instructions):
+        """Visit a list of instructions."""
+        assembly_instructions = []
+        if isinstance(instructions, Return):
+            assembly_instructions.extend(self.visit_return(instructions))
+        return assembly_instructions
+
+    def visit_return(self, return_node):
+        """Visit a return statement."""
+        instructions = []
+        # Generate MOV instruction to move return value into EAX
+        instructions.append(Mov(self.visit_expression(return_node.expression), Register("EAX")))
+        instructions.append(Ret())
+        return instructions
+
+    def visit_expression(self, expr):
+        """Visit an expression node."""
+        if isinstance(expr, Constant):
+            return Imm(expr.value)  # Create an immediate operand
+        else:
+            raise ValueError("Unknown expression type")
+
+    def get_assembly(self):
+        """Return the generated assembly program."""
+        return self.assembly_program
 
 # Example code to tokenize and parse
 if __name__ == "__main__":
@@ -156,17 +213,26 @@ if __name__ == "__main__":
     try:
         # Tokenize the code
         tokens = tokenize(code)
-        print(tokens)
         print("Tokens:")
         for token in tokens:
             print(token)
 
-        # Parse the tokens
         parser = Parser(tokens)
         program = parser.parse()
+
         print("\nParsed program:")
         print(f"Function Name: {program.function.name.value}")
         print(f"Return Value: {program.function.body.expression.value}")
+
+        generator = AssemblyGenerator()
+        generator.generate(program)
+        assembly = generator.get_assembly()
+        print("\nGenerated Assembly:")
+        for instr in assembly:
+            if isinstance(instr, Mov):
+                print(f"mov {instr.src.value}, {instr.dst.name}")
+            elif isinstance(instr, Ret):
+                print("ret")
 
     except RuntimeError as e:
         print(f"Error: {e}")
