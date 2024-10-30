@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 import re
 
-import re
 
 # Token specifications
 TOKEN_SPECIFICATIONS = [
@@ -10,10 +9,10 @@ TOKEN_SPECIFICATIONS = [
     ("Int Keyword", r"int\b"),           # Keyword: int
     ("Void Keyword", r"void\b"),         # Keyword: void
     ("Return Keyword", r"return\b"),     # Keyword: return
-    ("Open Parenthesis", r"\("),         # Open parenthesis
-    ("Close Parenthesis", r"\)"),        # Close parenthesis
-    ("Open Brace", r"\{"),               # Open brace
-    ("Close Brace", r"\}"),              # Close brace
+    ("Open parenthesis", r"\("),         # Open parenthesis
+    ("Close parenthesis", r"\)"),        # Close parenthesis
+    ("Open brace", r"\{"),               # Open brace
+    ("Close brace", r"\}"),              # Close brace
     ("Semicolon", r";"),                 # Semicolon
 ]
 
@@ -48,3 +47,96 @@ def tokenize(code):
 
     return tokens
 
+class Node:
+    pass
+
+class Constant(Node):
+    def __init__(self,value):
+        self.value=value;
+        
+class Identifier(Node):
+    def __init__(self,name):
+        self.value=name;
+        
+class Function(Node):
+    def __init__(self, name,body):
+        self.name=name 
+        self.body=body
+        
+class Statement(Node):
+    def __init__(self,expression):
+        self.expression = expression
+        
+class Return(Node):
+    def __init__(self,expression):
+        self.expression = expression
+
+class Program(Node):
+    def __init__(self,function):
+        self.function = function
+    
+    
+    
+class Parser:
+    def __init__(self,tokens):
+        self.tokens = tokens
+        self.current_token_index=0
+    
+    def current_token(self):
+        if self.current_token_index < len(self.tokens):
+            return self.tokens[self.current_token_index]
+        return None
+    
+    def take_token(self):
+        if self.current_token_index<len(self.tokens):
+            token = self.tokens[self.current_token_index]
+            self.current_token_index+=1
+            return token
+        return None
+    
+    def expect(self,expected):
+        actual = self.take_token()
+        if actual is None or actual[0]!=expected:
+            raise RuntimeError()
+        
+    def parse(self):
+        function = self.parse_function()
+        return Program(function)
+    
+    def parse_function(self):
+        self.expect('Int Keyword')
+        identifier_token = self.expect("Identifer")
+        function_name = Identifier(identifier_token[1])
+        
+        self.expect('Open parenthesis')
+        self.expect('Void Keyword')
+        self.expect('Close parenthesis')
+        self.expect("Open brace")  
+        
+        statement = self.parse_statement()  
+        self.expect("Close brace")
+        
+        return Function(function_name,statement)
+    
+    def parse_statement(self):
+        self.expect("Return Keyword") 
+        
+        return_val = self.parse_expression()  
+        self.expect("Semicolon")  
+        return Return(return_val)
+        
+    def parse_expression(self):
+        token = self.current_token()
+        if token[0] == "Constant":
+            return Constant(int(token[1]))  
+        else:
+            raise RuntimeError(f'Unexpected token in expression: {token}')
+    
+    def parse_identifier(self):
+        token = self.current_token()
+        if token[0] == "Identifier":
+            return Identifier(token[1])  
+        else:
+            raise RuntimeError(f'Expected an identifier, but got: {token}')
+
+    
