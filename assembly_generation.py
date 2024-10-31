@@ -1,4 +1,4 @@
-from assembly_constructs import *
+from classes import *
 # Instruction classes for assembly generation
 class Instruction(Node):
     pass
