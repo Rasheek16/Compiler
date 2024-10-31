@@ -1,5 +1,5 @@
-from classes import *
-# Instruction classes for assembly generation
+from classes import *  # Ensure all necessary classes are imported
+
 class Instruction(Node):
     pass
 
@@ -9,19 +9,29 @@ class Mov(Instruction):
         self.src = src  # Source operand
         self.dst = dst  # Destination operand
 
+    def __str__(self):
+        return f"\tmov {self.src}, {self.dst}"  # String representation of the MOV instruction
+
 class Ret(Instruction):
     """Represents a 'ret' instruction in assembly."""
-    pass  # No operands needed for return instruction
+    def __str__(self):
+        return "\tret"  # String representation of the RET instruction
 
 class Imm:
     """Represents an immediate (constant) operand."""
     def __init__(self, value):
         self.value = value  # Integer constant
 
+    def __str__(self):
+        return f"${self.value}"  # String representation of the immediate value
+
 class Register:
     """Represents a register operand."""
     def __init__(self, name):
         self.name = name  # Name of the register (e.g., "EAX")
+
+    def __str__(self):
+        return self.name  # String representation of the register name
 
 class AssemblyGenerator:
     def __init__(self):
@@ -55,18 +65,18 @@ class AssemblyGenerator:
 
     def visit_return(self, return_node):
         """Visit a return statement."""
-        instructions = []
-        # Generate MOV instruction to move return value into EAX
-        instructions.append(f"\tmov {self.visit_expression(return_node.expression)}, EAX")
-        instructions.append("\tret")
-        return instructions
+        # Generate the MOV instruction to move the return value into EAX
+        mov_instruction = Mov(self.visit_expression(return_node.expression), Register("EAX"))
+
+        # Return both instructions as a list of strings
+        return [str(mov_instruction), str(Ret())]
 
     def visit_expression(self, expr):
         """Visit an expression node."""
         if isinstance(expr, Constant):
-            return f"${expr.value}"  # Create an immediate operand
-        else:
-            raise ValueError("Unknown expression type")
+            return Imm(expr.value)  # Create an immediate operand
+        
+        raise ValueError("Unknown expression type")
 
     def get_assembly(self):
         """Return the generated assembly program."""
