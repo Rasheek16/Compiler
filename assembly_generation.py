@@ -1,7 +1,6 @@
-from classes import *
+from assembly_constructs import *
 # Instruction classes for assembly generation
 class Instruction(Node):
-    """Base class for all instructions."""
     pass
 
 class Mov(Instruction):
